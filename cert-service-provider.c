@@ -60,7 +60,6 @@
 static struct uip_udp_conn *server_conn;
 
 
- static char buffer [10] [1024];
 
 PROCESS(udp_server_process, "UDP server process");
 AUTOSTART_PROCESSES(&udp_server_process,&collect_common_process);

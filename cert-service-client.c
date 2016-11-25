@@ -46,15 +46,20 @@
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
-
 #define UDP_CLIENT_PORT 8775
 #define UDP_SERVER_PORT 5688
+
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
+
+#define MAX_CERT_FLIGHT 6
+static uint8_t cert_flight_count = 0;
+
+
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client process");
@@ -103,6 +108,7 @@ tcpip_handler(void)
     seqno = *appdata;
     hops = uip_ds6_if.cur_hop_limit - UIP_IP_BUF->ttl + 1;
     collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2);
+    collect_common_send();
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -114,7 +120,10 @@ collect_common_send(void)
     uint8_t seqno;
     uint8_t for_alignment;
     struct collect_view_data_msg msg;
+    char payload [2014];
   } msg;
+  uint16_t packet_size;
+
   /* struct collect_neighbor *n; */
   uint16_t parent_etx;
   uint16_t rtmetric;
@@ -162,10 +171,24 @@ collect_common_send(void)
     num_neighbors = 0;
   }
 
+  /* packet size without payload*/
+  packet_size = sizeof(msg) - sizeof(msg.payload);
+
+  if(cert_flight_count < MAX_CERT_FLIGHT -1) { // first 5 packet has size 128 B
+    memset(msg.payload, 'A', 128);
+    msg.payload[127] = 0; 
+    packet_size = packet_size  + 128;
+  } else { // the last fligt is for certificate
+      memset(msg.payload, 'A', 1024);
+      msg.payload[1023] = 0; 
+      packet_size = packet_size  + 1024;
+  }
+
   /* num_neighbors = collect_neighbor_list_num(&tc.neighbor_list); */
   collect_view_construct_message(&msg.msg, &parent,parent_etx, rtmetric, num_neighbors, beacon_interval);
-  uip_udp_packet_sendto(client_conn, &msg, sizeof(msg), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
- // uip_udp_packet_send(client_conn, &msg, sizeof(msg));
+  //uip_udp_packet_sendto(client_conn, &msg, sizeof(msg), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+  uip_udp_packet_sendto(client_conn, &msg,packet_size, &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+  cert_flight_count = cert_flight_count+ 1;
 
   PRINTF("Service client  -> service provider IP: ");
   PRINT6ADDR(&server_ipaddr);
