@@ -49,6 +49,8 @@
 static unsigned long time_offset;
 static int send_active = 1;
 
+static struct etimer period_timer, wait_timer;
+
 #ifndef PERIOD
 #define PERIOD 60
 #endif
@@ -105,7 +107,7 @@ collect_common_recv(const linkaddr_t *originator, uint8_t seqno, uint8_t hops,
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(collect_common_process, ev, data)
 {
-  static struct etimer period_timer, wait_timer;
+ 
   PROCESS_BEGIN();
 
   collect_common_net_init();
@@ -154,11 +156,11 @@ PROCESS_THREAD(collect_common_process, ev, data)
     }
     if(ev == PROCESS_EVENT_TIMER) {
       if(data == &period_timer) {
-       // etimer_reset(&period_timer);
+        //etimer_reset(&period_timer);
         etimer_set(&wait_timer, random_rand() % (CLOCK_SECOND * RANDWAIT));
       } else if(data == &wait_timer) {
         if(send_active) {
-          /* Time to send the data */
+          /*Time to send the data*/
           collect_common_send();
         }
       }

@@ -59,7 +59,8 @@
 
 static struct uip_udp_conn *server_conn;
 
-
+#define MAX_CERT_FLIGHT 13
+static uint8_t cert_flight_count = 0;
 
 PROCESS(udp_server_process, "UDP server process");
 AUTOSTART_PROCESSES(&udp_server_process,&collect_common_process);
@@ -120,7 +121,10 @@ send_reply_to_peer(void)
     uint8_t seqno;
     uint8_t for_alignment;
     struct collect_view_data_msg msg;
+    char payload [2014];
   } msg;
+  uint16_t packet_size;
+
   /* struct collect_neighbor *n; */
   uint16_t parent_etx;
   uint16_t rtmetric;
@@ -175,22 +179,21 @@ send_reply_to_peer(void)
    PRINTF("  Port: %u", UIP_HTONS(server_conn->rport));
    PRINTF("\n");
 
+   /* packet size without payload*/
+  packet_size = sizeof(msg) - sizeof(msg.payload);
+  memset(msg.payload, 'A', 128);
+  msg.payload[127] = 0; 
+  packet_size = packet_size  + 128;
+ 
+
   /* num_neighbors = collect_neighbor_list_num(&tc.neighbor_list); */
   collect_view_construct_message(&msg.msg, &parent, parent_etx, rtmetric, num_neighbors, beacon_interval);
-
-  //uip_udp_packet_sendto(server_conn, &msg, sizeof(msg), &server_conn->ripaddr, UIP_HTONS(server_conn->rport));
-  //PRINTF("Responding with message: ");
-    //sprintf(buf, "Hello from the server! (%d)", ++seqno);
-   // PRINTF("%s\n", buf);
- // uip_udp_packet_send(server_conn, buf, strlen(buf));
-   uip_udp_packet_send(server_conn,&msg, sizeof(msg));
+  uip_udp_packet_send(server_conn,&msg, packet_size);
   
   /* Restore server connection to allow data from any node */
- // memset(&server_conn->ripaddr, 0, sizeof(server_conn->ripaddr));
+  //memset(&server_conn->ripaddr, 0, sizeof(server_conn->ripaddr));
 
   PRINTF("Service provider sent data\n");
-
-
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -207,7 +210,17 @@ tcpip_handler(void)
     sender.u8[1] = UIP_IP_BUF->srcipaddr.u8[14];
     seqno = *appdata;
     hops = uip_ds6_if.cur_hop_limit - UIP_IP_BUF->ttl + 1;
-    collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2);
+    collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2-128);
+    //PRINTF("Message from service-client: %s \n", appdata+2+sizeof(struct collect_view_data_msg) );
+    cert_flight_count = cert_flight_count+ 1 ;
+    if(cert_flight_count == MAX_CERT_FLIGHT) {
+      cert_flight_count =0;
+      //wait for some secon and then go ahead
+       send_reply_to_peer();
+    } else {
+      send_reply_to_peer();
+    }
+  } else if(uip_rexmit()) { // packet drop need to retransmit
     send_reply_to_peer();
   }
 }

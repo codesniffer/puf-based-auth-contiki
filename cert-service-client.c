@@ -56,7 +56,7 @@
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
-#define MAX_CERT_FLIGHT 6
+#define MAX_CERT_FLIGHT 13
 static uint8_t cert_flight_count = 0;
 
 
@@ -108,6 +108,17 @@ tcpip_handler(void)
     seqno = *appdata;
     hops = uip_ds6_if.cur_hop_limit - UIP_IP_BUF->ttl + 1;
     collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2);
+
+    cert_flight_count = cert_flight_count+ 1 ;
+    if(cert_flight_count == MAX_CERT_FLIGHT) {
+      cert_flight_count =0;
+      //wait for 120s second and then go ahead
+      clock_wait(CLOCK_SECOND * 120) ;
+      collect_common_send();
+    } else {
+      collect_common_send();
+    }
+  } else if(uip_rexmit()) { // packet drop need to retransmit
     collect_common_send();
   }
 }
@@ -120,7 +131,7 @@ collect_common_send(void)
     uint8_t seqno;
     uint8_t for_alignment;
     struct collect_view_data_msg msg;
-    char payload [2014];
+    char payload [2048];
   } msg;
   uint16_t packet_size;
 
@@ -174,21 +185,16 @@ collect_common_send(void)
   /* packet size without payload*/
   packet_size = sizeof(msg) - sizeof(msg.payload);
 
-  if(cert_flight_count < MAX_CERT_FLIGHT -1) { // first 5 packet has size 128 B
-    memset(msg.payload, 'A', 128);
-    msg.payload[127] = 0; 
-    packet_size = packet_size  + 128;
-  } else { // the last fligt is for certificate
-      memset(msg.payload, 'A', 1024);
-      msg.payload[1023] = 0; 
-      packet_size = packet_size  + 1024;
-  }
+  PRINTF ("Maximum Paylod Size: %lu \n", UIP_APPDATA_SIZE);
 
+  memset(msg.payload, 'A', 128);
+  msg.payload[127] = 0; 
+  packet_size = packet_size  + 128;
+ 
   /* num_neighbors = collect_neighbor_list_num(&tc.neighbor_list); */
   collect_view_construct_message(&msg.msg, &parent,parent_etx, rtmetric, num_neighbors, beacon_interval);
   //uip_udp_packet_sendto(client_conn, &msg, sizeof(msg), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
   uip_udp_packet_sendto(client_conn, &msg,packet_size, &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
-  cert_flight_count = cert_flight_count+ 1;
 
   PRINTF("Service client  -> service provider IP: ");
   PRINT6ADDR(&server_ipaddr);
@@ -275,3 +281,17 @@ PROCESS_THREAD(udp_client_process, ev, data)
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
+
+/*
+
+#define   CLOCK_SECOND //A second, measured in system clock time. 
+
+clock_time_t  clock_time (void) //Get the current clock time. 
+
+unsigned long  clock_seconds (void) //Get the current value of the platform seconds. 
+
+rtimer_clock_t  RTIMER_NOW()
+
+RTIMER_ARCH_SECOND
+
+*/
