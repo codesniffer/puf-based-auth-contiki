@@ -89,6 +89,9 @@ static void
 tcpip_handler(void)
 {
   if(uip_newdata()) {
+
+    PRINTF("Service client received data from provider\n");
+
     /* Ignore incoming data */
   }
 }
@@ -150,12 +153,14 @@ collect_common_send(void)
   }
 
   /* num_neighbors = collect_neighbor_list_num(&tc.neighbor_list); */
-  collect_view_construct_message(&msg.msg, &parent,
-                                 parent_etx, rtmetric,
-                                 num_neighbors, beacon_interval);
+  collect_view_construct_message(&msg.msg, &parent,parent_etx, rtmetric, num_neighbors, beacon_interval);
+  uip_udp_packet_sendto(client_conn, &msg, sizeof(msg), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+ // uip_udp_packet_send(client_conn, &msg, sizeof(msg));
 
-  uip_udp_packet_sendto(client_conn, &msg, sizeof(msg),
-                        &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+  PRINTF("Service client  -> service provider IP: ");
+  PRINT6ADDR(&server_ipaddr);
+  PRINTF("  Port: %u", UIP_HTONS(UDP_SERVER_PORT));
+  PRINTF("\n");
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -222,8 +227,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   PRINTF("Created a connection with the server ");
   PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-        UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+  PRINTF(" local/remote port %u/%u\n",UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
   while(1) {
     PROCESS_YIELD();
