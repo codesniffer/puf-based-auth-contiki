@@ -1,0 +1,7 @@
+obj_sky
+*.sky
+*.a
+*.map
+Makefile~
+.gitignore~
+
