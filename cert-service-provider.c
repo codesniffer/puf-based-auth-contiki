@@ -73,7 +73,22 @@ collect_common_set_sink(void)
 void
 collect_common_net_print(void)
 {
-  printf("I am sink!\n");
+  rpl_dag_t *dag;
+  uip_ds6_route_t *r;
+
+  /* Let's suppose we have only one instance */
+  dag = rpl_get_any_dag();
+  if(dag->preferred_parent != NULL) {
+    PRINTF("Preferred parent: ");
+    PRINT6ADDR(rpl_get_parent_ipaddr(dag->preferred_parent));
+    PRINTF("\n");
+  }
+  for(r = uip_ds6_route_head();
+      r != NULL;
+      r = uip_ds6_route_next(r)) {
+    PRINT6ADDR(&r->ipaddr);
+  }
+  PRINTF("---\n");
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -94,7 +109,7 @@ collect_common_net_init(void)
 #endif
   serial_line_init();
 
-  PRINTF("I am sink!\n");
+  PRINTF("I am service provider!\n");
 }
 /*---------------------------------------------------------------------------*/
 static void

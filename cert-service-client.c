@@ -44,6 +44,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+
+
 #define UDP_CLIENT_PORT 8775
 #define UDP_SERVER_PORT 5688
 
@@ -88,11 +91,18 @@ collect_common_net_print(void)
 static void
 tcpip_handler(void)
 {
+  uint8_t *appdata;
+  linkaddr_t sender;
+  uint8_t seqno;
+  uint8_t hops;
+
   if(uip_newdata()) {
-
-    PRINTF("Service client received data from provider\n");
-
-    /* Ignore incoming data */
+    appdata = (uint8_t *)uip_appdata;
+    sender.u8[0] = UIP_IP_BUF->srcipaddr.u8[15];
+    sender.u8[1] = UIP_IP_BUF->srcipaddr.u8[14];
+    seqno = *appdata;
+    hops = uip_ds6_if.cur_hop_limit - UIP_IP_BUF->ttl + 1;
+    collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -172,6 +182,9 @@ collect_common_net_init(void)
   uart1_set_input(serial_line_input_byte);
 #endif
   serial_line_init();
+
+  PRINTF("I am service-client!\n");
+
 }
 /*---------------------------------------------------------------------------*/
 static void
