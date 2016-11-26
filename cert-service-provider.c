@@ -59,7 +59,7 @@
 
 static struct uip_udp_conn *server_conn;
 
-#define MAX_CERT_FLIGHT 13
+#define MAX_CERT_FLIGHT 14
 static uint8_t cert_flight_count = 0;
 
 PROCESS(udp_server_process, "UDP server process");
@@ -121,7 +121,7 @@ send_reply_to_peer(void)
     uint8_t seqno;
     uint8_t for_alignment;
     struct collect_view_data_msg msg;
-    char payload [2014];
+    char payload [256];
   } msg;
   uint16_t packet_size;
 

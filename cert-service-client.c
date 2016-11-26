@@ -56,8 +56,17 @@
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
-#define MAX_CERT_FLIGHT 13
+#define MAX_CERT_FLIGHT 14
 static uint8_t cert_flight_count = 0;
+
+static unsigned long rstart_time = 0; 
+static unsigned long rend_time = 0;
+static unsigned long relasped_time = 0;
+
+static unsigned long cstart_time = 0;
+static unsigned long cend_time = 0;
+static unsigned long celasped_time = 0;
+
 
 
 
@@ -112,10 +121,25 @@ tcpip_handler(void)
     cert_flight_count = cert_flight_count+ 1 ;
     if(cert_flight_count == MAX_CERT_FLIGHT) {
       cert_flight_count =0;
-      //wait for 120s second and then go ahead
-      clock_wait(CLOCK_SECOND * 120) ;
+      rend_time = RTIMER_NOW();
+      relasped_time = rend_time - rstart_time;
+
+      cend_time = clock_time();
+      celasped_time = cend_time - cstart_time;
+
+      printf("relasped_time [%lu] ticks, rlatency [%lu] sec\n", relasped_time, relasped_time/RTIMER_ARCH_SECOND );
+      printf("celasped_time [%lu] ticks, clatency [%lu] sec\n", celasped_time, celasped_time/CLOCK_SECOND );
+
+
+      clock_wait(CLOCK_SECOND * 120) ; /*wait for 120s second and then go ahead*/
       collect_common_send();
     } else {
+      if (cert_flight_count == 1) { // first packet
+        rstart_time = RTIMER_NOW();
+        cstart_time = clock_time();
+        printf("first packet at rtime [%lu]  ctime [%lu]\n", rstart_time, cstart_time);
+      
+      }
       collect_common_send();
     }
   } else if(uip_rexmit()) { // packet drop need to retransmit
@@ -131,7 +155,7 @@ collect_common_send(void)
     uint8_t seqno;
     uint8_t for_alignment;
     struct collect_view_data_msg msg;
-    char payload [2048];
+    char payload [256];
   } msg;
   uint16_t packet_size;
 
@@ -194,6 +218,8 @@ collect_common_send(void)
   collect_view_construct_message(&msg.msg, &parent,parent_etx, rtmetric, num_neighbors, beacon_interval);
   //uip_udp_packet_sendto(client_conn, &msg, sizeof(msg), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
   uip_udp_packet_sendto(client_conn, &msg,packet_size, &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+
+ 
 
   //PRINTF("Service client  -> service provider IP: ");
  // PRINT6ADDR(&server_ipaddr);
