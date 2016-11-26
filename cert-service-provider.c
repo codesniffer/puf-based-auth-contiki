@@ -174,10 +174,10 @@ send_reply_to_peer(void)
   }
 
    uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
-   PRINTF("Service provider -> service client IP: ");
-   PRINT6ADDR(&server_conn->ripaddr);
-   PRINTF("  Port: %u", UIP_HTONS(server_conn->rport));
-   PRINTF("\n");
+   //PRINTF("Service provider -> service client IP: ");
+  // PRINT6ADDR(&server_conn->ripaddr);
+  // PRINTF("  Port: %u", UIP_HTONS(server_conn->rport));
+  // PRINTF("\n");
 
    /* packet size without payload*/
   packet_size = sizeof(msg) - sizeof(msg.payload);
@@ -193,7 +193,6 @@ send_reply_to_peer(void)
   /* Restore server connection to allow data from any node */
   //memset(&server_conn->ripaddr, 0, sizeof(server_conn->ripaddr));
 
-  PRINTF("Service provider sent data\n");
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -210,7 +209,7 @@ tcpip_handler(void)
     sender.u8[1] = UIP_IP_BUF->srcipaddr.u8[14];
     seqno = *appdata;
     hops = uip_ds6_if.cur_hop_limit - UIP_IP_BUF->ttl + 1;
-    collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2-128);
+    collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2-128); //128 is the side of the payload
     //PRINTF("Message from service-client: %s \n", appdata+2+sizeof(struct collect_view_data_msg) );
     cert_flight_count = cert_flight_count+ 1 ;
     if(cert_flight_count == MAX_CERT_FLIGHT) {

@@ -107,7 +107,7 @@ tcpip_handler(void)
     sender.u8[1] = UIP_IP_BUF->srcipaddr.u8[14];
     seqno = *appdata;
     hops = uip_ds6_if.cur_hop_limit - UIP_IP_BUF->ttl + 1;
-    collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2);
+    //collect_common_recv(&sender, seqno, hops, appdata + 2, uip_datalen() - 2-128); // 128 is the size of the payload
 
     cert_flight_count = cert_flight_count+ 1 ;
     if(cert_flight_count == MAX_CERT_FLIGHT) {
@@ -185,7 +185,6 @@ collect_common_send(void)
   /* packet size without payload*/
   packet_size = sizeof(msg) - sizeof(msg.payload);
 
-  PRINTF ("Maximum Paylod Size: %lu \n", UIP_APPDATA_SIZE);
 
   memset(msg.payload, 'A', 128);
   msg.payload[127] = 0; 
@@ -196,10 +195,10 @@ collect_common_send(void)
   //uip_udp_packet_sendto(client_conn, &msg, sizeof(msg), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
   uip_udp_packet_sendto(client_conn, &msg,packet_size, &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
 
-  PRINTF("Service client  -> service provider IP: ");
-  PRINT6ADDR(&server_ipaddr);
-  PRINTF("  Port: %u", UIP_HTONS(UDP_SERVER_PORT));
-  PRINTF("\n");
+  //PRINTF("Service client  -> service provider IP: ");
+ // PRINT6ADDR(&server_ipaddr);
+ // PRINTF("  Port: %u", UIP_HTONS(UDP_SERVER_PORT));
+ // PRINTF("\n");
 }
 /*---------------------------------------------------------------------------*/
 void

@@ -46,6 +46,13 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "net/rime/collect-neighbor.h" 
+#include "net/rime/rime.h"
+#include "net/rime/timesynch.h"
+#include "collect-view.h"
+
+#include <string.h>
+
 static unsigned long time_offset;
 static int send_active = 1;
 
@@ -82,6 +89,33 @@ collect_common_set_send_active(int active)
   send_active = active;
 }
 /*---------------------------------------------------------------------------*/
+void 
+collect_common_print_packet_detail (const linkaddr_t *originator, uint8_t seqno, uint8_t hops, uint8_t *payload, uint16_t payload_len) 
+{
+
+  unsigned long latency;
+  unsigned long cpu, lpm, transmit, listen, clock, timesynch_time;
+  struct collect_view_data_msg *msg = (struct collect_view_data_msg*) (payload)  ;
+  
+ 
+ /*
+ * need to enable this MACRO to get the synch time. 
+ * Can be enabled here: /home/user/contiki/platform/sky/contiki-conf.h
+ */
+#if TIMESYNCH_CONF_ENABLED 
+  latency = timesynch_time() - msg->timesynch_time ;
+#endif /* TIMESYNCH_CONF_ENABLED */
+
+  cpu = msg->cpu;
+  lpm = msg->lpm;
+  transmit = msg->transmit;
+  listen = msg->listen;
+  timesynch_time = msg->timesynch_time;
+  clock = msg->clock;
+
+  printf("originator [%u], squence no [%u], clock [%lu], timesync_time [%lu], cpu_power [%lu], lpm_power [%lu], transmit_power [%lu], listen_power [%lu] \n", originator->u8[0] + (originator->u8[1] << 8), seqno, clock, timesynch_time, cpu, lpm, transmit, listen);
+}
+/*---------------------------------------------------------------------------*/
 void
 collect_common_recv(const linkaddr_t *originator, uint8_t seqno, uint8_t hops,
                     uint8_t *payload, uint16_t payload_len)
@@ -89,6 +123,8 @@ collect_common_recv(const linkaddr_t *originator, uint8_t seqno, uint8_t hops,
   unsigned long time;
   uint16_t data;
   int i;
+
+  collect_common_print_packet_detail(originator,seqno,hops,payload, payload_len);
 
   printf("%u", 8 + payload_len / 2);
   /* Timestamp. Ignore time synch for now. */
