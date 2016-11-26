@@ -101,6 +101,28 @@ collect_common_net_print(void)
   }
   PRINTF("---\n");
 }
+
+/*---------------------------------------------------------------------------*/
+void 
+time_tracking_start (void) 
+{
+  rstart_time = RTIMER_NOW();
+  cstart_time = clock_time();
+  printf("first packet at rtime [%lu]  ctime [%lu]\n", rstart_time, cstart_time);
+}
+
+void 
+time_tracking_stop (void) 
+{
+  rend_time = RTIMER_NOW();
+  relasped_time = rend_time - rstart_time;
+
+  cend_time = clock_time();
+  celasped_time = cend_time - cstart_time;
+
+  printf("relasped_time [%lu] ticks, rlatency [%lu] sec\n", relasped_time, relasped_time/RTIMER_ARCH_SECOND );
+  printf("celasped_time [%lu] ticks, clatency [%lu] sec\n", celasped_time, celasped_time/CLOCK_SECOND );
+}
 /*---------------------------------------------------------------------------*/
 static void
 tcpip_handler(void)
@@ -121,24 +143,12 @@ tcpip_handler(void)
     cert_flight_count = cert_flight_count+ 1 ;
     if(cert_flight_count == MAX_CERT_FLIGHT) {
       cert_flight_count =0;
-      rend_time = RTIMER_NOW();
-      relasped_time = rend_time - rstart_time;
-
-      cend_time = clock_time();
-      celasped_time = cend_time - cstart_time;
-
-      printf("relasped_time [%lu] ticks, rlatency [%lu] sec\n", relasped_time, relasped_time/RTIMER_ARCH_SECOND );
-      printf("celasped_time [%lu] ticks, clatency [%lu] sec\n", celasped_time, celasped_time/CLOCK_SECOND );
-
-
+      time_tracking_stop();
       clock_wait(CLOCK_SECOND * 120) ; /*wait for 120s second and then go ahead*/
       collect_common_send();
     } else {
       if (cert_flight_count == 1) { // first packet
-        rstart_time = RTIMER_NOW();
-        cstart_time = clock_time();
-        printf("first packet at rtime [%lu]  ctime [%lu]\n", rstart_time, cstart_time);
-      
+        time_tracking_start();
       }
       collect_common_send();
     }
