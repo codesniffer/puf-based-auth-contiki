@@ -112,6 +112,46 @@ collect_common_net_init(void)
   PRINTF("I am service provider!\n");
 }
 /*---------------------------------------------------------------------------*/
+void 
+hash_generation(void)
+{
+  uint8_t buffer[1024]; /* certificate buffer*/
+  int i =0;
+  int hash_output =1;
+  memset(buffer, 'A', 1024);
+  for(i=0; i<1024; i++) {
+    hash_output = hash_output ^ buffer[i];
+  }
+}
+/*---------------------------------------------------------------------------*/
+void 
+encryption_decryption(void)
+{
+  hash_generation();
+
+}
+/*---------------------------------------------------------------------------*/
+void 
+singnature_varification(void)
+{
+  hash_generation();
+  encryption_decryption();
+}
+/*---------------------------------------------------------------------------*/
+void 
+key_generation_exponential(void)
+{
+  unsigned long a =65300 ;
+  unsigned long b=65300;
+  unsigned long key;
+  unsigned long i, j;
+  for (i =0; i < a; i++) {
+    for (j =0; j< b; j++) {
+      key = key + a;
+    }
+  }
+}
+/*---------------------------------------------------------------------------*/
 static void
 send_reply_to_peer(void)
 {
@@ -214,9 +254,14 @@ tcpip_handler(void)
     cert_flight_count = cert_flight_count+ 1 ;
     if(cert_flight_count == MAX_CERT_FLIGHT) {
       cert_flight_count =0;
+
       //wait for some secon and then go ahead
        send_reply_to_peer();
     } else {
+       if (cert_flight_count == 1) { // first packet
+        singnature_varification();
+        key_generation_exponential();
+      }
       send_reply_to_peer();
     }
   } else if(uip_rexmit()) { // packet drop need to retransmit
