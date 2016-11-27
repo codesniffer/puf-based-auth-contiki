@@ -59,7 +59,7 @@
 
 static struct uip_udp_conn *server_conn;
 
-#define MAX_CERT_FLIGHT 14
+#define MAX_CERT_FLIGHT 18
 static uint8_t cert_flight_count = 0;
 
 PROCESS(udp_server_process, "UDP server process");

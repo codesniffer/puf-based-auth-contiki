@@ -56,7 +56,7 @@
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
-#define MAX_CERT_FLIGHT 14
+#define MAX_CERT_FLIGHT 18
 static uint8_t cert_flight_count = 0;
 
 static unsigned long rstart_time = 0; 
@@ -66,6 +66,8 @@ static unsigned long relasped_time = 0;
 static unsigned long cstart_time = 0;
 static unsigned long cend_time = 0;
 static unsigned long celasped_time = 0;
+
+static unsigned long cpu_energy_start, cpu_energy_stop,lpm_energy_start, lpm_energy_stop, transmit_energy_start, transmit_energy_stop, listen_energy_start, listen_energy_stop;
 
 
 
@@ -101,7 +103,50 @@ collect_common_net_print(void)
   }
   PRINTF("---\n");
 }
+/*---------------------------------------------------------------------------*/
+void
+energy_tracking_start (void) 
+{
+  /*
+  // might need to enable before reading energy values
+  ENERGETST_ON(ENERGEST_TYPE_CPU);
+  ENERGETST_ON(ENERGEST_TYPE_LPM);
+  ENERGETST_ON(ENERGEST_TYPE_TRANSMIT);
+  ENERGETST_ON(ENERGEST_TYPE_LISTEN);
+ */ 
 
+  energest_flush();
+  cpu_energy_start = energest_type_time(ENERGEST_TYPE_CPU);
+  lpm_energy_start = energest_type_time(ENERGEST_TYPE_LPM);
+  transmit_energy_start = energest_type_time(ENERGEST_TYPE_TRANSMIT);
+  listen_energy_start = energest_type_time(ENERGEST_TYPE_LISTEN);
+}
+/*---------------------------------------------------------------------------*/
+void
+energy_tracking_stop (void) 
+{
+  unsigned long energy_consumed;
+  int cpu_current  = 2; // 2mA
+  int lpm_current = 1; 
+  int transmit_current = 18;
+  int listen_current = 20;
+  int volt = 3;
+
+  energest_flush();
+  cpu_energy_stop = energest_type_time(ENERGEST_TYPE_CPU) - cpu_energy_start;
+  lpm_energy_stop = energest_type_time(ENERGEST_TYPE_LPM) - lpm_energy_start;
+  transmit_energy_stop = energest_type_time(ENERGEST_TYPE_TRANSMIT) - transmit_energy_start;
+  listen_energy_stop = energest_type_time(ENERGEST_TYPE_LISTEN) - transmit_energy_start;
+
+  energy_consumed =  (cpu_current* cpu_energy_stop);
+  energy_consumed = energy_consumed + (lpm_current * lpm_energy_stop); 
+  energy_consumed = energy_consumed + (transmit_current * transmit_energy_stop);
+  energy_consumed = energy_consumed + (listen_current * listen_energy_stop);
+  energy_consumed = energy_consumed* volt;
+  energy_consumed = energy_consumed / RTIMER_SECOND;
+  printf("energy consumption [%lu] mJ\n", energy_consumed); 
+  
+}
 /*---------------------------------------------------------------------------*/
 void 
 time_tracking_start (void) 
@@ -120,7 +165,7 @@ time_tracking_stop (void)
   cend_time = clock_time();
   celasped_time = cend_time - cstart_time;
 
-  printf("relasped_time [%lu] ticks, rlatency [%lu] sec\n", relasped_time, relasped_time/RTIMER_ARCH_SECOND );
+  printf("relasped_time [%lu] ticks, rlatency [%lu] sec\n", relasped_time, relasped_time/RTIMER_SECOND ); // RTIMER_ARCH_SECOND
   printf("celasped_time [%lu] ticks, clatency [%lu] sec\n", celasped_time, celasped_time/CLOCK_SECOND );
 }
 /*---------------------------------------------------------------------------*/
@@ -144,11 +189,13 @@ tcpip_handler(void)
     if(cert_flight_count == MAX_CERT_FLIGHT) {
       cert_flight_count =0;
       time_tracking_stop();
+      energy_tracking_stop();
       clock_wait(CLOCK_SECOND * 120) ; /*wait for 120s second and then go ahead*/
       collect_common_send();
     } else {
       if (cert_flight_count == 1) { // first packet
         time_tracking_start();
+        energy_tracking_start();
       }
       collect_common_send();
     }
@@ -328,5 +375,7 @@ unsigned long  clock_seconds (void) //Get the current value of the platform seco
 rtimer_clock_t  RTIMER_NOW()
 
 RTIMER_ARCH_SECOND
+
+RTIMER_SECOND
 
 */
