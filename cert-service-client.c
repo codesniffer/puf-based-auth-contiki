@@ -131,11 +131,11 @@ void
 energy_tracking_stop (void) 
 {
   unsigned long energy_consumed;
-  int cpu_current  = 2; // 2mA
+  int cpu_current  = 2; // 1.2mA
   int lpm_current = 1; 
-  int transmit_current = 18;
-  int listen_current = 20;
-  int volt = 3;
+  int transmit_current = 23;
+  int listen_current = 21;
+  int volt = 4;
 
   energest_flush();
   cpu_energy_stop = energest_type_time(ENERGEST_TYPE_CPU) - cpu_energy_start;
