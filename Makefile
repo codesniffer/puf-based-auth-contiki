@@ -3,6 +3,9 @@ APPS = powertrace collect-view
 #CONTIKI_PROJECT = udp-sender udp-sink
 CONTIKI_PROJECT = cert-service-client cert-service-provider
 PROJECT_SOURCEFILES += collect-common.c
+PROJECT_SOURCEFILES += sha256.c
+
+
 
 ifdef PERIOD
 CFLAGS=-DPERIOD=$(PERIOD)

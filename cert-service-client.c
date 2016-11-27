@@ -33,6 +33,7 @@
 #include "net/ip/uip-udp-packet.h"
 #include "net/rpl/rpl.h"
 #include "dev/serial-line.h"
+
 #if CONTIKI_TARGET_Z1
 #include "dev/uart0.h"
 #else
@@ -41,8 +42,12 @@
 #include "collect-common.h"
 #include "collect-view.h"
 
+#include "sha256.h"
 #include <stdio.h>
 #include <string.h>
+
+
+
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
@@ -175,10 +180,28 @@ hash_generation(void)
   uint8_t buffer[1024]; /* certificate buffer*/
   int i =0;
   int hash_output =1;
+  //BYTE text2[] = {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"};
+ // BYTE hash2[SHA256_BLOCK_SIZE] = {0x24,0x8d,0x6a,0x61,0xd2,0x06,0x38,0xb8,0xe5,0xc0,0x26,0x93,0x0c,0x3e,0x60,0x39,
+                                  // 0xa3,0x3c,0xe4,0x59,0x64,0xff,0x21,0x67,0xf6,0xec,0xed,0xd4,0x19,0xdb,0x06,0xc1};
+  BYTE buf[SHA256_BLOCK_SIZE];
+  SHA256_CTX ctx;
+  int idx;
+  int pass = 1;
+
+  /*sha256_init(&ctx);
+  sha256_update(&ctx, text2, strlen(text2));
+  sha256_final(&ctx, buf);
+  pass = pass && !memcmp(hash2, buf, SHA256_BLOCK_SIZE);*/
+
+  printf("SHA test resutl: [%lu]", pass);
+
+
   memset(buffer, 'A', 1024);
   for(i=0; i<1024; i++) {
     hash_output = hash_output ^ buffer[i];
   }
+
+
 }
 /*---------------------------------------------------------------------------*/
 void 
@@ -238,6 +261,7 @@ tcpip_handler(void)
         energy_tracking_start();
         singnature_varification();
         key_generation_exponential();
+        hash_generation();
       }
       collect_common_send();
     }
